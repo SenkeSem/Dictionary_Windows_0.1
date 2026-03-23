@@ -82,22 +82,29 @@ int WINAPI WinMain(
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    PAINTSTRUCT ps;
-    HDC hdc;
-    TCHAR greeting[] = _T("Hello, Windows desktop!");
-
     switch (message)
     {
-    case WM_PAINT:
+    case WM_COMMAND:
+        switch (wParam)
+        {
+        case OnMenuClicked:
+            MessageBox(hWnd, L"Menu was clicked", L"Menu worked", MB_OK);
+            break;
+        case OnEditClear:
+            SetWindowTextA(hEditControl, "");
+            break;
+        case OnExit:
+            PostQuitMessage(0);
+            break;
+        default:
+            break;
+        }
+        break;
+
+
+    case WM_CREATE:
         MainWndAddMenus(hWnd);
-
-        hdc = BeginPaint(hWnd, &ps);
-
-        TextOut(hdc,
-            5, 5,
-            greeting, _tcslen(greeting));
-
-        EndPaint(hWnd, &ps);
+        MainWndAddWidgets(hWnd);
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -113,8 +120,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 void MainWndAddMenus(HWND hWnd)
 {
     HMENU RootMenu = CreateMenu();
+    HMENU SubMenu = CreateMenu();
 
-    AppendMenu(RootMenu, MF_STRING, NULL, L"file");
+    AppendMenu(SubMenu, MF_STRING, OnMenuClicked, L"menu1");
+    AppendMenu(SubMenu, MF_STRING, OnMenuClicked1, L"menu2");
+    AppendMenu(SubMenu, MF_STRING, OnMenuClicked2, L"menu3");
+    AppendMenu(SubMenu, MF_SEPARATOR, NULL, NULL);
+    AppendMenu(SubMenu, MF_STRING, OnExit, L"exit");
 
+    AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenu, L"file");
     SetMenu(hWnd, RootMenu);
+}
+
+void MainWndAddWidgets(HWND hWnd)
+{
+    CreateWindowA("static", "Hello Windows!", WS_VISIBLE | WS_CHILD, 5, 5, 490, 20, hWnd, NULL, NULL, NULL);
+
+    hEditControl = CreateWindowA("edit", "This is edit control!", WS_VISIBLE | WS_CHILD, 5, 25, 490, 20, hWnd, NULL, NULL, NULL);
+
+    CreateWindowA("button", "clear", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 65, 490, 20, hWnd, (HMENU)OnEditClear, NULL, NULL);
 }
