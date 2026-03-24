@@ -4,6 +4,7 @@
 #include <tchar.h>
 
 #include "Menu.h"
+#include "resource.h"
 
 static TCHAR szWindowClass[] = _T("DesktopApp");
 static TCHAR szTitle[] = _T("Windows Desktop");
@@ -25,12 +26,12 @@ int WINAPI WinMain(
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+    wcex.hIcon = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDB_BITMAP1));
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDB_BITMAP1));
 
     if (!RegisterClassEx(&wcex))
     {
@@ -93,6 +94,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case OnEditClear:
             SetWindowTextA(hEditControl, "");
             break;
+        case OnReadEdit:
+            GetWindowTextA(hEditControl, Buffer, TextBufferSize);
+            SetWindowTextA(hStaticControl, Buffer);
+            break;
+        case OnSaveFile:
+            SaveData("D:\\Projects\\WindowsProject\\x64\\Debug\\output.txt");
+            break;
+        case OnLoadFile:
+            LoadData("D:\\Projects\\WindowsProject\\x64\\Debug\\output.txt");
+            break;
         case OnExit:
             PostQuitMessage(0);
             break;
@@ -122,21 +133,61 @@ void MainWndAddMenus(HWND hWnd)
     HMENU RootMenu = CreateMenu();
     HMENU SubMenu = CreateMenu();
 
-    AppendMenu(SubMenu, MF_STRING, OnMenuClicked, L"menu1");
-    AppendMenu(SubMenu, MF_STRING, OnMenuClicked1, L"menu2");
-    AppendMenu(SubMenu, MF_STRING, OnMenuClicked2, L"menu3");
+    AppendMenu(SubMenu, MF_STRING, OnSaveFile, L"save");
+    AppendMenu(SubMenu, MF_STRING, OnLoadFile, L"load");
     AppendMenu(SubMenu, MF_SEPARATOR, NULL, NULL);
     AppendMenu(SubMenu, MF_STRING, OnExit, L"exit");
 
     AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenu, L"file");
+    AppendMenu(RootMenu, MF_STRING, (UINT_PTR)SubMenu, L"help");
     SetMenu(hWnd, RootMenu);
 }
 
 void MainWndAddWidgets(HWND hWnd)
 {
-    CreateWindowA("static", "Hello Windows!", WS_VISIBLE | WS_CHILD, 5, 5, 490, 20, hWnd, NULL, NULL, NULL);
+    hStaticControl = CreateWindowA("static", "Hello Windows!", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 5, 490, 20, hWnd, NULL, NULL, NULL);
+    hEditControl = CreateWindowA("edit", "This is edit control!", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 5, 55, 490, 100, hWnd, NULL, NULL, NULL);
 
-    hEditControl = CreateWindowA("edit", "This is edit control!", WS_VISIBLE | WS_CHILD, 5, 25, 490, 20, hWnd, NULL, NULL, NULL);
+    CreateWindowA("button", "clear", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 25, 100, 30, hWnd, (HMENU)OnEditClear, NULL, NULL);
+    CreateWindowA("button", "read", WS_VISIBLE | WS_CHILD | ES_CENTER, 135, 25, 100, 30, hWnd, (HMENU)OnReadEdit, NULL, NULL);
+}
 
-    CreateWindowA("button", "clear", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 65, 490, 20, hWnd, (HMENU)OnEditClear, NULL, NULL);
+void SaveData(LPCSTR path)
+{
+    HANDLE FileToSave = CreateFileA(
+        path,
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+
+    int saveLength = GetWindowTextLength(hEditControl);
+
+    char* data = new char[saveLength];
+
+    saveLength = GetWindowTextA(hEditControl, data, saveLength);
+    DWORD bytesIterated;
+    WriteFile(FileToSave, data, saveLength, &bytesIterated, NULL);
+
+    CloseHandle(FileToSave);
+    delete[] data;
+}
+
+void LoadData(LPCSTR path)
+{
+    HANDLE FileToLoad = CreateFileA(
+        path,
+        GENERIC_READ,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+
+    DWORD bytesIterated;
+    ReadFile(FileToLoad, Buffer, TextBufferSize, &bytesIterated, NULL);
+    SetWindowTextA(hEditControl, Buffer);
+    CloseHandle(FileToLoad);
 }
